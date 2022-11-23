@@ -35,3 +35,8 @@ race = ff1.get_session(2022, 'Imola', 'R')
 ```
 ### Documentation
 Fastf1 has its [documentation](https://theoehrly.github.io/Fast-F1/), where you can find all its functionality. 
+
+## Plot Example
+This is the speed telemetry plot between Charles Leclerc and Max Verstappen through their fastest lap during 2022 Race in Imola Grand Prix. 
+
+![alt text](https://github.com/MaxRondelli/Formula-1-Analysis/blob/main/Image/Speed%20Telemetry.jpg?raw=true)
