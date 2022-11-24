@@ -1,6 +1,7 @@
 import fastf1 as ff1
 import pandas as pd
 import numpy as np
+import math
 from fastf1 import plotting 
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -13,23 +14,56 @@ ff1.Cache.enable_cache('cache')
 ff1.plotting.setup_mpl()
 
 # Choosing an f1 session 
-year = int(input("Choose a year between 2015 and 2022 for the session: "))
-grand_prix_list = ff1.get_event_schedule(year)
-print(grand_prix_list['Location'])
+count = 0
 
-grand_prix = input("\nChoose a Grand Prix from the list:")   
-session_type = input("\nChoose session's type (Q or R): ")
+# -------------- YEAR SESSION --------------
+while count == 0:
+    year = int(input("Choose a year between 2015 and 2022 for the session: "))
+    if 2015 <= year <= 2022:
+        grand_prix_list = ff1.get_event_schedule(year)
+        print(grand_prix_list['Location'])
+        count = 1
+    else: 
+        print("\nYear not valid. Try again.")
 
-session = ff1.get_session(year, grand_prix, session_type)
-session.load() # Load the session
+# -------------- GRAND PRIX --------------
+while count == 1:
+    grand_prix = input("\nChoose a Grand Prix from the list:") 
+    for i in grand_prix_list['Location']:
+        if i == grand_prix:   
+            count = 2
+        
+    if count == 1:
+        print("\nGrand Prix not valid. Try Again")
 
+# -------------- SESSION TYPE --------------
+while count == 2:
+    session_type = input("\nChoose session type: (FP1, FP2, FP3, Q, R): ")
+    if session_type == "FP1" or session_type == "FP2" or session_type == "FP3" or session_type == "Q" or session_type == "R":
+            session = ff1.get_session(year, grand_prix, session_type)
+            count = 3
+    else:
+        print("\nSession not valid. Try again")
+
+if count == 3:
+    count = 4
+    session.load() # Load the session
+
+# -------------- DRIVER --------------
 print("\nChoose one of the following driver.")
 print(session.results['Abbreviation'])
-driver = input("\nWrite the driver:")
-laps_driver = session.laps.pick_driver(driver)
-fastest_driver = laps_driver.pick_fastest()
-telemetry_driver = fastest_driver.get_telemetry()
-
+while count == 4:
+    driver = input("\nWrite the driver:")
+    for i in session.results['Abbreviation']:
+        if i == driver:           
+            laps_driver = session.laps.pick_driver(driver)
+            fastest_driver = laps_driver.pick_fastest()
+            telemetry_driver = fastest_driver.get_telemetry()    
+            count = -1  
+    
+    if count == 4:
+        print("\nDriver's abbreviation incorrect. Try again.")
+        
 # Team color for plot
 team_driver = laps_driver['Team'].iloc[0]
 color = ff1.plotting.team_color(team_driver)
@@ -43,34 +77,28 @@ ax[0].plot(telemetry_driver['Distance'], telemetry_driver['Speed'], label = driv
 ax[0].set(ylabel = "Speed")
 ax[0].legend(loc = "lower right")
 
-distance_values = np.array(telemetry_driver['Distance'].values)
-speed_values = np.array(telemetry_driver['Speed'].values)
-brake_values = np.array(telemetry_driver['Brake'].values)
-time_values = np.array(telemetry_driver['Time'].values)
-
 def longAcceleration():
-    acceleration = list()
+    driver_time = (telemetry_driver['Time'] / np.timedelta64(1, 's')).astype(int)
+    driver_speed = telemetry_driver['Speed']
+    raw_acceleration_data = []
     
-    for i in range(0, distance_values.size): 
-        if i == 0:      
-            acceleration.append(i)     
-        else:
-            tmp = i-1            
-    
-            v_p = speed_values[tmp] # previous speed 
-            v_f = speed_values[i] # final speed
-            t_p = time_values[tmp] / np.timedelta64(1, 's') # previous time 
-            t_f = time_values[i] / np.timedelta64(1, 's') # final time
-                        
-            acc = (v_f - v_p) / (t_f - t_p)                 
-            acceleration.append(acc)
-    
-        i += 1
+    for i in range(0, driver_time.size):
+        
+        s_p = driver_speed.iloc[i-1]            # Previous speed
+        s_f = driver_speed.iloc[i]              # Current speed
+        t_p = driver_time.iloc[i-1]             # Previous time
+        t_f = driver_time.iloc[i]               # Current time
+
+        with np.errstate(divide = 'ignore', invalid = 'ignore'):
+            acc = ((s_f - s_p) / 3.6) / (t_f - t_p)
+            raw_acceleration_data.append(acc)
+        
+        acceleration_data = [v for v in raw_acceleration_data if not(math.isinf(v) or math.isnan(v))]    
 
     # Subplot 2: Longitudinal Acceleration
-    ax[1].plot(telemetry_driver['Distance'], acceleration, label = driver, color = color)
-    ax[1].set_ylabel("Long Acc")
-    ax[1].set_ylim([-400, 400])
-    
+    ax[1].plot(acceleration_data, label = "LEC", color = color)
+    ax[1].set_ylabel("Long Acceleration")
+
+
 longAcceleration()
 plt.show()
