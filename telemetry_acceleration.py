@@ -120,24 +120,26 @@ def latAcceleration():
                     speed = driver_speed[j]
                     
                     with np.errstate(divide='ignore', invalid = 'ignore'):
-                        acceleration = abs(math.pow(speed, 2)) / radius
-                        raw_acceleration_data.append(acceleration)
-            
-                    print("--------------")
-                    print("Start meters: ", df['Start meters'][i])
-                    print("\nEnd meters: ", df['End Meters'][i])
-                    print("\nCircuit distance: ", circuit_distance[j])
-                    print("\nRadius: ", radius)
-                    print("\nSpeed: ", speed)
-                    print("\nAcceleration: ", acceleration)
+                        speed_ms = abs(speed / 3.6) # speed in meters/seconds
+                        acceleration = (math.pow(speed_ms, 2)) / radius
+                        g_force = acceleration / 9.81
+                        raw_acceleration_data.append(g_force)
 
+                    # print("--------------")
+                    # print("Start meters: ", df['Start meters'][i])
+                    # print("\nEnd meters: ", df['End Meters'][i])
+                    # print("\nCircuit distance: ", circuit_distance[j])
+                    # print("\nRadius: ", radius)
+                    # print("\nSpeed: ", speed)
+                    # print("\nAcceleration: ", acceleration)
+                    # print("\n g-force: ", g_force)
+                    
                     acceleration_data = [v for v in raw_acceleration_data if not (math.isinf(v) or math.isnan(v))]                    
                     
         print("\n", acceleration_data)
         # Subplot 3: Lateral Acceleration
         ax[2].plot(acceleration_data, label="LEC", color = color)
         ax[2].set_ylabel("Lat Acceleration")
-        
         
 longAcceleration()
 latAcceleration()
