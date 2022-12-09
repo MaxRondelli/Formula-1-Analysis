@@ -2,7 +2,6 @@ import fastf1 as ff1
 import pandas as pd
 import numpy as np
 import math
-import csv
 from fastf1 import plotting
 from matplotlib import pyplot as plt
 from matplotlib.colors import ListedColormap
@@ -78,6 +77,11 @@ ax[0].plot(telemetry_driver['Distance'], telemetry_driver['Speed'], label=driver
 ax[0].set(ylabel="Speed")
 ax[0].legend(loc="lower right")
 
+driver_speed = telemetry_driver['Speed']
+driver_throttle = telemetry_driver['Throttle']
+driver_brake = telemetry_driver['Brake']
+driver_distance = telemetry_driver['Distance']
+driver_gear = telemetry_driver['nGear']
 
 def longAcceleration():
     driver_time = (telemetry_driver['Time'] / np.timedelta64(1, 's')).astype(int)
@@ -95,52 +99,40 @@ def longAcceleration():
             acc = ((s_f - s_p) / 3.6) / (t_f - t_p)
             raw_acceleration_data.append(acc)
 
-        acceleration_data = [v for v in raw_acceleration_data if not (math.isinf(v) or math.isnan(v))]
+        acceleration_data = [v for v in raw_acceleration_data if not (math.isinf(v) or math.isnan(v) or v < -6.0)]
 
     # Subplot 2: Longitudinal Acceleration
     ax[1].plot(acceleration_data, label="LEC", color = color)
     ax[1].set_ylabel("Long Acceleration")
 
 def latAcceleration():
-    if grand_prix == "Imola":
+    if grand_prix == "Imola" and driver == "VER":
         excel_data = pd.read_excel('Dataset/data_imola_circuit.xlsx') # Load xlsx file
-        # Read the values of the file in the dataframe
-        df = pd.DataFrame(excel_data)
-        
-        # |V^2| / r
-        
-        circuit_distance = telemetry_driver['Distance']
-        driver_speed = telemetry_driver['Speed']
+        df = pd.DataFrame(excel_data) # Read the values of the file in the dataframe
+
         raw_acceleration_data = []
 
         for i in df.index:
-            for j in circuit_distance.index:
-                if df['Start meters'][i] <= circuit_distance[j] <= df['End Meters'][i]:
-                    radius = df['Radius'][i]
-                    speed = driver_speed[j]
-                    
-                    with np.errstate(divide='ignore', invalid = 'ignore'):
-                        speed_ms = abs(speed / 3.6) # speed in meters/seconds
-                        acceleration = (math.pow(speed_ms, 2)) / radius
-                        g_force = acceleration / 9.81
-                        raw_acceleration_data.append(g_force)
+            for j in driver_distance.index:
+                if driver_gear[j] == 2 or driver_gear[j] == 3 or driver_gear[j] == 4 or driver_gear[j] == 5:
+                    if df['Start meters'][i] <= driver_distance[j] <= df['End Meters'][i]:
 
-                    # print("--------------")
-                    # print("Start meters: ", df['Start meters'][i])
-                    # print("\nEnd meters: ", df['End Meters'][i])
-                    # print("\nCircuit distance: ", circuit_distance[j])
-                    # print("\nRadius: ", radius)
-                    # print("\nSpeed: ", speed)
-                    # print("\nAcceleration: ", acceleration)
-                    # print("\n g-force: ", g_force)
-                    
-                    acceleration_data = [v for v in raw_acceleration_data if not (math.isinf(v) or math.isnan(v))]                    
-                    
+                        radius = df['Radius'][i]
+                        speed = driver_speed[j]
+
+                        with np.errstate(divide='ignore', invalid = 'ignore'):
+                            speed_ms = abs(speed / 3.6) # speed in meters/seconds
+                            acceleration = (math.pow(speed_ms, 2)) / radius
+                            g_force = acceleration / 9.81
+                            raw_acceleration_data.append(g_force)    
+
+                        acceleration_data = [v for v in raw_acceleration_data if not (math.isinf(v) or math.isnan(v) or v > 7.0 or v == 0)]                                                      
+        
         print("\n", acceleration_data)
         # Subplot 3: Lateral Acceleration
-        ax[2].plot(acceleration_data, label="LEC", color = color)
-        ax[2].set_ylabel("Lat Acceleration")
-        
+        ax[2].plot(acceleration_data, label=driver, color = color)
+        ax[2].set(ylabel='Lateral Acceleration')
+           
 longAcceleration()
 latAcceleration()
 plt.show()
