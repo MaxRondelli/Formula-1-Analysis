@@ -136,8 +136,8 @@ ax[4].plot(telemetry_driver_2['Distance'], telemetry_driver_2['RPM'], label=driv
 ax[4].set(ylabel='RPM')
 
 def longAcceleration():
-    driver_time_1 = (telemetry_driver_1['Time'] / np.timedelta64(1, 's')).astype(int)
-    driver_time_2 = (telemetry_driver_2['Time'] / np.timedelta64(1, 's')).astype(int)
+    driver_time_1 = (telemetry_driver_1['Time'] / np.timedelta64(1, 's')).astype(float)
+    driver_time_2 = (telemetry_driver_2['Time'] / np.timedelta64(1, 's')).astype(float)
     
     driver_speed_1 = telemetry_driver_1['Speed']
     driver_speed_2 = telemetry_driver_2['Speed']
@@ -145,40 +145,41 @@ def longAcceleration():
     raw_acceleration_data_1 = []
     raw_acceleration_data_2 = []
 
-    for i in range(0, driver_time_1.size):
-
-        s_p = driver_speed_1.iloc[i-1]            # Previous speed
-        s_f = driver_speed_1.iloc[i]              # Current speed
-        t_p = driver_time_1.iloc[i-1]             # Previous time
-        t_f = driver_time_1.iloc[i]               # Current time
-
-        with np.errstate(divide='ignore', invalid = 'ignore'):
-            acc = ((s_f - s_p) / 3.6) / (t_f - t_p)
-            raw_acceleration_data_1.append(acc)
-
-        acceleration_data_1 = [v for v in raw_acceleration_data_1 if not (math.isinf(v) or math.isnan(v) or v < -6.0)]
-
-    for i in range(0, driver_time_2.size):
-        
-            s_p = driver_speed_2.iloc[i-1]            # Previous speed
-            s_f = driver_speed_2.iloc[i]              # Current speed
-            t_p = driver_time_2.iloc[i-1]             # Previous time
-            t_f = driver_time_2.iloc[i]               # Current time
+    for i in driver_time_1.index:
+        if i > 0 and i < driver_time_1.size:
+            s_p = driver_speed_1.iloc[i-1]            # Previous speed
+            s_f = driver_speed_1.iloc[i]              # Current speed
+            t_p = driver_time_1.iloc[i-1]             # Previous time
+            t_f = driver_time_1.iloc[i]               # Current time
 
             with np.errstate(divide='ignore', invalid = 'ignore'):
                 acc = ((s_f - s_p) / 3.6) / (t_f - t_p)
-                raw_acceleration_data_2.append(acc)
+                g_force = acc / 9.81
+                raw_acceleration_data_1.append(g_force)
+               
+            acceleration_data_1 = [v for v in raw_acceleration_data_1 if not (math.isinf(v) or math.isnan(v) or v < -6.0 or v > 6)]
 
-            acceleration_data_2 = [v for v in raw_acceleration_data_2 if not (math.isinf(v) or math.isnan(v) or v < -6.0)]
+    for i in driver_time_2.index:
+            if i > 0 and i < driver_time_1.size:
+                s_p = driver_speed_2.iloc[i-1]          # Previous speed
+                s_f = driver_speed_2.iloc[i]            # Current speed
+                t_p = driver_time_2.iloc[i-1]           # Previous time
+                t_f = driver_time_2.iloc[i]             # Current time
+
+                with np.errstate(divide='ignore', invalid = 'ignore'):
+                    acc = ((s_f - s_p) / 3.6) / (t_f - t_p)
+                    g_force = acc / 9.81
+                    raw_acceleration_data_2.append(g_force)
+                    
+                acceleration_data_2 = [v for v in raw_acceleration_data_2 if not (math.isinf(v) or math.isnan(v) or v < -6.0 or v > 6)]
 
     # Subplot 5: Longitudinal Acceleration
     ax[5].plot(acceleration_data_1, label = driver_1, color = ff1.plotting.team_color(team_driver_1))
     ax[5].plot(acceleration_data_2, label = driver_2, color = ff1.plotting.team_color(team_driver_2))
     ax[5].set_ylabel("Long Acc")
 
-'''
-Lateral Acceleration is avaible only for Verstappen during Quali in Imola 2022.
-'''
+
+              
 def latAcceleration():
     if grand_prix == "Imola" and driver_1 == "VER" or driver_2 == "VER":
         
@@ -187,37 +188,32 @@ def latAcceleration():
         fastest_driver = laps_driver.pick_fastest() 
         telemetry_driver = fastest_driver.get_telemetry() 
         team_driver = fastest_driver['Team']
-
-        driver_distance = telemetry_driver['Distance']
-        driver_gear = telemetry_driver['nGear']
+                
+        driver_time = (telemetry_driver['Time'] / np.timedelta64(1, 's')).astype(float)
         driver_speed = telemetry_driver['Speed']
-
-        excel_data = pd.read_excel('Dataset/data_imola_circuit.xlsx') # Load xlsx file
-        df = pd.DataFrame(excel_data) # Read the values of the file in the dataframe
-
+        
+        excel_data = pd.read_excel('Dataset/tempi_curve.xlsx')                  # Load xlsx file
+        df = pd.DataFrame(excel_data)                                           # Read the values of the file in the dataframe
+       
         raw_acceleration_data = []
 
         for i in df.index:
-            for j in driver_distance.index:
-                if driver_gear[j] == 2 or driver_gear[j] == 3 or driver_gear[j] == 4 or driver_gear[j] == 5:
-                    if df['Start meters'][i] <= driver_distance[j] <= df['End Meters'][i]:
-
-                        radius = df['Radius'][i]
-                        speed = driver_speed[j]
-
-                        with np.errstate(divide='ignore', invalid = 'ignore'):
-                            speed_ms = abs(speed / 3.6) # speed in meters/seconds
+            for j in driver_time.index:
+                if df['Start time'][i] <= driver_time[j] <= df['End time'][i]:
+                    radius = df['Radius'][i]
+                    speed = driver_speed[j]
+                    
+                    with np.errstate(divide='ignore', invalid = 'ignore'):
+                            speed_ms = speed / 3.6                               # Speed in meters/seconds
                             acceleration = (math.pow(speed_ms, 2)) / radius
                             g_force = acceleration / 9.81
                             raw_acceleration_data.append(g_force)    
 
-                        acceleration_data = [v for v in raw_acceleration_data if not (math.isinf(v) or math.isnan(v) or v > 7.0 or v == 0)]                                               
-        
-        print("\n", acceleration_data)
+                    acceleration_data = [v for v in raw_acceleration_data if not (math.isinf(v) or math.isnan(v) or v > 6.0 or v == 0)]    
         
         # Subplot 6: Lateral Acceleration
         ax[6].plot(acceleration_data, label = driver, color = ff1.plotting.team_color(team_driver))
-        ax[6].set(ylabel='Lat Acc')
+        ax[6].set(ylabel='Lat Acc')       
         
 longAcceleration()
 latAcceleration()
