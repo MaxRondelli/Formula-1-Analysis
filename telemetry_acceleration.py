@@ -160,7 +160,7 @@ def longAcceleration():
             acceleration_data_1 = [v for v in raw_acceleration_data_1 if not (math.isinf(v) or math.isnan(v) or v < -6.0 or v > 6)]
 
     for i in driver_time_2.index:
-            if i > 0 and i < driver_time_1.size:
+            if i > 0 and i < driver_time_2.size:
                 s_p = driver_speed_2.iloc[i-1]          # Previous speed
                 s_f = driver_speed_2.iloc[i]            # Current speed
                 t_p = driver_time_2.iloc[i-1]           # Previous time
@@ -178,8 +178,7 @@ def longAcceleration():
     ax[5].plot(acceleration_data_2, label = driver_2, color = ff1.plotting.team_color(team_driver_2))
     ax[5].set_ylabel("Long Acc")
 
-
-              
+            
 def latAcceleration():
     if grand_prix == "Imola" and driver_1 == "VER" or driver_2 == "VER":
         
@@ -217,4 +216,7 @@ def latAcceleration():
         
 longAcceleration()
 latAcceleration()
+
+# using padding
+fig.tight_layout(pad=2.5)
 plt.show()
