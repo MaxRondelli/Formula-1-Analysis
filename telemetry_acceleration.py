@@ -180,39 +180,39 @@ def longAcceleration():
 
             
 def latAcceleration():
-    if grand_prix == "Imola" and driver_1 == "VER" or driver_2 == "VER":
-        
-        driver = "VER"
-        laps_driver = session.laps.pick_driver(driver) 
-        fastest_driver = laps_driver.pick_fastest() 
-        telemetry_driver = fastest_driver.get_telemetry() 
-        team_driver = fastest_driver['Team']
-                
-        driver_time = (telemetry_driver['Time'] / np.timedelta64(1, 's')).astype(float)
-        driver_speed = telemetry_driver['Speed']
-        
-        excel_data = pd.read_excel('Dataset/tempi_curve.xlsx')                  # Load xlsx file
-        df = pd.DataFrame(excel_data)                                           # Read the values of the file in the dataframe
-       
-        raw_acceleration_data = []
-
-        for i in df.index:
-            for j in driver_time.index:
-                if df['Start time'][i] <= driver_time[j] <= df['End time'][i]:
-                    radius = df['Radius'][i]
-                    speed = driver_speed[j]
+    if grand_prix == "Imola":
+        if driver_1 == "VER" or driver_2 == "VER":
+            driver = "VER"
+            laps_driver = session.laps.pick_driver(driver) 
+            fastest_driver = laps_driver.pick_fastest() 
+            telemetry_driver = fastest_driver.get_telemetry() 
+            team_driver = fastest_driver['Team']
                     
-                    with np.errstate(divide='ignore', invalid = 'ignore'):
-                            speed_ms = speed / 3.6                               # Speed in meters/seconds
-                            acceleration = (math.pow(speed_ms, 2)) / radius
-                            g_force = acceleration / 9.81
-                            raw_acceleration_data.append(g_force)    
-
-                    acceleration_data = [v for v in raw_acceleration_data if not (math.isinf(v) or math.isnan(v) or v > 6.0 or v == 0)]    
+            driver_time = (telemetry_driver['Time'] / np.timedelta64(1, 's')).astype(float)
+            driver_speed = telemetry_driver['Speed']
+            
+            excel_data = pd.read_excel('Dataset/tempi_curve.xlsx')                  # Load xlsx file
+            df = pd.DataFrame(excel_data)                                           # Read the values of the file in the dataframe
         
-        # Subplot 6: Lateral Acceleration
-        ax[6].plot(acceleration_data, label = driver, color = ff1.plotting.team_color(team_driver))
-        ax[6].set(ylabel='Lat Acc')       
+            raw_acceleration_data = []
+
+            for i in df.index:
+                for j in driver_time.index:
+                    if df['Start time'][i] <= driver_time[j] <= df['End time'][i]:
+                        radius = df['Radius'][i]
+                        speed = driver_speed[j]
+                        
+                        with np.errstate(divide='ignore', invalid = 'ignore'):
+                                speed_ms = speed / 3.6                               # Speed in meters/seconds
+                                acceleration = (math.pow(speed_ms, 2)) / radius
+                                g_force = acceleration / 9.81
+                                raw_acceleration_data.append(g_force)    
+
+                        acceleration_data = [v for v in raw_acceleration_data if not (math.isinf(v) or math.isnan(v) or v > 6.0 or v == 0)]    
+            
+            # Subplot 6: Lateral Acceleration
+            ax[6].plot(acceleration_data, label = driver, color = ff1.plotting.team_color(team_driver))
+            ax[6].set(ylabel='Lat Acc')       
         
 longAcceleration()
 latAcceleration()
